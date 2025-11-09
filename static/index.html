@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件管理</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>工程组文件管理系统</h1>
+            <p class="subtitle">上传、下载、管理文件</p>
+        </header>
+
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-content">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <p class="upload-text">拖拽文件到此处或点击上传</p>
+                    <p class="upload-hint">支持多个文件，无大小限制</p>
+                    <input type="file" id="fileInput" multiple style="display: none;">
+                </div>
+            </div>
+            <button class="btn btn-primary" id="uploadBtn">选择文件</button>
+            <div id="uploadProgress" class="upload-progress-container" style="display: none;"></div>
+        </div>
+
+        <div class="files-section">
+            <div class="section-header">
+                <h2>文件列表</h2>
+                <button class="btn btn-secondary" id="refreshBtn">刷新</button>
+            </div>
+            <div class="files-table-container">
+                <table class="files-table" id="filesTable">
+                    <thead>
+                        <tr>
+                            <th>图标</th>
+                            <th class="sortable" data-sort="name">
+                                文件名 <span class="sort-icon"></span>
+                            </th>
+                            <th class="sortable" data-sort="size">
+                                大小 <span class="sort-icon"></span>
+                            </th>
+                            <th class="sortable" data-sort="time">
+                                修改时间 <span class="sort-icon"></span>
+                            </th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="filesContainer">
+                        <tr>
+                            <td colspan="5" class="loading">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
