@@ -20,21 +20,41 @@
 
 ## 快速开始
 
-### 1. 安装依赖
+### 开发模式运行
 
 ```bash
+# 1. 安装依赖
 go mod download
-```
 
-### 2. 运行服务器
-
-```bash
+# 2. 运行服务器
 go run main.go
+
+# 3. 访问应用
+# 打开浏览器访问: http://localhost:8080
 ```
 
-### 3. 访问应用
+### 编译部署
 
-打开浏览器访问: http://localhost:8080
+**Windows:**
+```bash
+# 方式1: 直接编译
+go build -o filesystem.exe .
+
+# 方式2: 使用编译脚本
+build.bat
+```
+
+**Linux/macOS:**
+```bash
+# 方式1: 直接编译
+go build -o filesystem .
+
+# 方式2: 使用编译脚本
+chmod +x build.sh
+./build.sh
+```
+
+详细部署说明请查看 [DEPLOY.md](DEPLOY.md)
 
 ## 项目结构
 
