@@ -8,6 +8,7 @@ type FileInfo struct {
 	ModTime   time.Time `json:"modTime"`
 	IsDir     bool      `json:"isDir"`
 	Extension string    `json:"extension"`
+	Path      string    `json:"path,omitempty"` // 相对路径
 }
 
 type Response struct {

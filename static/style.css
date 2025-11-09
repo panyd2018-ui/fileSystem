@@ -217,6 +217,30 @@ header h1 {
     font-weight: 600;
 }
 
+.breadcrumb {
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.breadcrumb-item {
+    color: #3498db;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.breadcrumb-item:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-separator {
+    color: #666;
+    margin: 0 6px;
+}
+
 .files-table-container {
     overflow-x: auto;
     border: 1px solid #ddd;
@@ -288,6 +312,19 @@ header h1 {
 
 .files-table tbody tr:hover {
     background: #f8f9fa;
+}
+
+.files-table tbody tr.file-dir {
+    cursor: pointer;
+}
+
+.files-table tbody tr.file-dir:hover {
+    background: #e8f4f8;
+}
+
+.files-table td.dir-name {
+    color: #3498db;
+    font-weight: 500;
 }
 
 .files-table tbody tr:last-child {

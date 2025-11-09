@@ -5,23 +5,40 @@
 ### Windows 编译
 
 ```bash
-# 编译为 Windows 可执行文件
-go build -o filesystem.exe main.go
-
-# 或者指定输出文件名
+# 编译为 Windows AMD64 可执行文件（64位）
+set GOOS=windows
+set GOARCH=amd64
 go build -o filesystem.exe .
+
+# 或者直接使用编译脚本
+build.bat
 ```
+
+**注意：** 默认编译为当前系统架构。如需指定架构，请设置 `GOOS` 和 `GOARCH` 环境变量。
 
 ### Linux 编译
 
+**在 Linux 系统上编译：**
 ```bash
-# 编译为 Linux 可执行文件
-go build -o filesystem main.go
+# 使用编译脚本（自动设置为 AMD64）
+chmod +x build.sh
+./build.sh
 
-# 或者交叉编译（在 Windows 上编译 Linux 版本）
+# 或手动编译
+export GOOS=linux
+export GOARCH=amd64
+go build -o filesystem .
+```
+
+**在 Windows 上交叉编译 Linux 版本：**
+```bash
+# 使用编译脚本
+build-linux-amd64.bat
+
+# 或手动编译
 set GOOS=linux
 set GOARCH=amd64
-go build -o filesystem main.go
+go build -o filesystem-linux-amd64 .
 ```
 
 ### macOS 编译
@@ -41,13 +58,11 @@ go build -o filesystem main.go
 部署时需要包含以下文件：
 
 ```
-filesystem.exe (或 filesystem)    # 编译后的可执行文件
+filesystem.exe (或 filesystem)    # 编译后的可执行文件（已包含前端文件）
 config.json                       # 配置文件（首次运行会自动创建）
-static/                           # 静态文件目录
-  ├── index.html
-  ├── style.css
-  └── script.js
 ```
+
+**注意：** 前端文件已打包进可执行文件中，无需单独的 `static/` 目录。
 
 ## 部署步骤
 
@@ -60,9 +75,10 @@ go build -o filesystem.exe .
 ### 2. 准备部署目录
 
 创建部署目录，将以下文件复制到目录中：
-- 编译后的可执行文件
-- `static/` 目录（包含所有前端文件）
+- 编译后的可执行文件（已包含前端文件）
 - `config.json`（可选，首次运行会自动创建）
+
+**注意：** 前端文件已嵌入到可执行文件中，无需单独部署 `static/` 目录。
 
 ### 3. 配置
 
@@ -134,6 +150,34 @@ sudo systemctl start filesystem
 ```bash
 sudo systemctl status filesystem
 ```
+
+## Windows 开机自启动
+
+### 方法一：使用任务计划程序（推荐）
+
+运行安装脚本：
+```cmd
+# 以管理员身份运行
+install-service.bat
+```
+
+### 方法二：使用启动文件夹（简单）
+
+运行安装脚本：
+```cmd
+install-startup.bat
+```
+
+### 卸载自启动
+
+```cmd
+# 卸载任务计划
+uninstall-service.bat
+
+# 或手动删除启动文件夹中的快捷方式
+```
+
+详细说明请查看 [WINDOWS_AUTOSTART.md](WINDOWS_AUTOSTART.md)
 
 ## 生产环境建议
 

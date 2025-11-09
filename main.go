@@ -1,13 +1,18 @@
 package main
 
 import (
+	"embed"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"path/filepath"
 
 	"github.com/gorilla/mux"
 )
+
+//go:embed static
+var staticFiles embed.FS
 
 func init() {
 	loadConfig()
@@ -28,8 +33,14 @@ func main() {
 func setupRoutes() *mux.Router {
 	r := mux.NewRouter()
 
-	// 静态文件服务
-	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	// 静态文件服务（从嵌入的文件系统读取）
+	// 使用 fs.Sub 获取 static 子目录
+	staticSubFS, err := fs.Sub(staticFiles, "static")
+	if err != nil {
+		log.Fatalf("无法读取嵌入的静态文件: %v", err)
+	}
+	staticFS := http.FS(staticSubFS)
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(staticFS)))
 
 	// API 路由
 	api := r.PathPrefix("/api").Subrouter()

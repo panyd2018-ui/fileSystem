@@ -2,6 +2,7 @@ const API_BASE = '/api';
 let files = [];
 let sortField = 'name'; // 当前排序字段: name, size, time
 let sortOrder = 'asc';  // 排序方向: asc, desc
+let currentPath = '';   // 当前路径
 
 // DOM 元素
 const uploadArea = document.getElementById('uploadArea');
@@ -9,6 +10,7 @@ const fileInput = document.getElementById('fileInput');
 const uploadBtn = document.getElementById('uploadBtn');
 const refreshBtn = document.getElementById('refreshBtn');
 const filesContainer = document.getElementById('filesContainer');
+const breadcrumb = document.getElementById('breadcrumb');
 const toast = document.getElementById('toast');
 
 // 初始化
@@ -137,7 +139,7 @@ function uploadFile(file) {
                     }, 1000);
                     // 延迟刷新文件列表，避免多个文件同时上传时频繁刷新
                     setTimeout(() => {
-                        loadFiles();
+                        loadFiles(currentPath);
                     }, 500);
                 } else {
                     progressItem.classList.add('error');
@@ -169,16 +171,24 @@ function uploadFile(file) {
         }
     });
 
-    xhr.open('POST', `${API_BASE}/upload`);
+    // 构建上传URL，包含当前路径
+    let uploadUrl = `${API_BASE}/upload`;
+    if (currentPath) {
+        uploadUrl += `?path=${encodeURIComponent(currentPath)}`;
+    }
+    
+    xhr.open('POST', uploadUrl);
     xhr.send(formData);
 }
 
 // 加载文件列表
-async function loadFiles() {
+async function loadFiles(path = '') {
     try {
+        currentPath = path;
         filesContainer.innerHTML = '<tr><td colspan="5" class="loading">加载中...</td></tr>';
         
-        const response = await fetch(`${API_BASE}/files`);
+        const url = path ? `${API_BASE}/files?path=${encodeURIComponent(path)}` : `${API_BASE}/files`;
+        const response = await fetch(url);
         const data = await response.json();
 
         if (data.success) {
@@ -186,6 +196,7 @@ async function loadFiles() {
             sortFiles();
             renderFiles();
             updateSortIcons();
+            updateBreadcrumb(path);
         } else {
             showToast('加载文件列表失败', 'error');
             filesContainer.innerHTML = `
@@ -202,6 +213,38 @@ async function loadFiles() {
             </tr>
         `;
     }
+}
+
+// 更新面包屑导航
+function updateBreadcrumb(path) {
+    if (!path) {
+        breadcrumb.innerHTML = '<span class="breadcrumb-item" data-path="">根目录</span>';
+        return;
+    }
+    
+    const parts = path.split(/[/\\]/).filter(p => p);
+    let html = '<span class="breadcrumb-item" data-path="">根目录</span>';
+    
+    let current = '';
+    parts.forEach((part, index) => {
+        current = current ? current + '/' + part : part;
+        html += ` <span class="breadcrumb-separator">/</span> <span class="breadcrumb-item" data-path="${current}">${part}</span>`;
+    });
+    
+    breadcrumb.innerHTML = html;
+    
+    // 添加点击事件
+    breadcrumb.querySelectorAll('.breadcrumb-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const targetPath = item.dataset.path || '';
+            loadFiles(targetPath);
+        });
+    });
+}
+
+// 进入目录
+function enterDirectory(path) {
+    loadFiles(path);
 }
 
 // 渲染文件列表
@@ -221,42 +264,50 @@ function renderFiles() {
 
     filesContainer.innerHTML = files.map(file => createFileRow(file)).join('');
     
+    // 添加目录点击事件
+    document.querySelectorAll('.file-dir').forEach(item => {
+        item.addEventListener('click', (e) => {
+            const path = e.currentTarget.dataset.path;
+            enterDirectory(path);
+        });
+    });
+    
     // 添加事件监听器
     document.querySelectorAll('.btn-download').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const filename = e.target.dataset.filename;
-            downloadFile(filename);
+            e.stopPropagation();
+            const path = e.target.dataset.path;
+            downloadFile(path);
         });
     });
 
     document.querySelectorAll('.btn-danger').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const filename = e.target.dataset.filename;
-            deleteFile(filename);
+            e.stopPropagation();
+            const path = e.target.dataset.path;
+            deleteFile(path);
         });
     });
 }
 
 // 创建文件表格行
 function createFileRow(file) {
-    const icon = getFileIcon(file.extension);
-    const size = formatFileSize(file.size);
+    const icon = file.isDir ? '📁' : getFileIcon(file.extension);
+    const size = file.isDir ? '-' : formatFileSize(file.size);
     const date = formatDate(file.modTime);
+    const rowClass = file.isDir ? 'file-dir' : '';
+    const path = file.path || file.name;
 
     return `
-        <tr>
+        <tr class="${rowClass}" data-path="${path}">
             <td>${icon}</td>
-            <td title="${file.name}">${file.name}</td>
+            <td title="${file.name}" class="${file.isDir ? 'dir-name' : ''}">${file.name}${file.isDir ? ' /' : ''}</td>
             <td>${size}</td>
             <td>${date}</td>
             <td>
                 <div class="file-actions">
-                    <button class="btn btn-download" data-filename="${file.name}">
-                        下载
-                    </button>
-                    <button class="btn btn-danger" data-filename="${file.name}">
-                        删除
-                    </button>
+                    ${file.isDir ? '' : `<button class="btn btn-download" data-path="${path}">下载</button>`}
+                    <button class="btn btn-danger" data-path="${path}">删除</button>
                 </div>
             </td>
         </tr>
@@ -309,19 +360,22 @@ function formatDate(dateString) {
 }
 
 // 下载文件
-function downloadFile(filename) {
-    window.open(`${API_BASE}/download/${encodeURIComponent(filename)}`, '_blank');
+function downloadFile(path) {
+    window.open(`${API_BASE}/download/${encodeURIComponent(path)}`, '_blank');
     showToast('开始下载...', 'success');
 }
 
 // 删除文件
-async function deleteFile(filename) {
-    if (!confirm(`确定要删除文件 "${filename}" 吗？`)) {
+async function deleteFile(path) {
+    const pathParts = path.split(/[/\\]/);
+    const name = pathParts[pathParts.length - 1];
+    
+    if (!confirm(`确定要删除 "${name}" 吗？`)) {
         return;
     }
 
     try {
-        const response = await fetch(`${API_BASE}/delete/${encodeURIComponent(filename)}`, {
+        const response = await fetch(`${API_BASE}/delete/${encodeURIComponent(path)}`, {
             method: 'DELETE'
         });
 
@@ -329,7 +383,7 @@ async function deleteFile(filename) {
 
         if (data.success) {
             showToast(data.message || '删除成功', 'success');
-            loadFiles();
+            loadFiles(currentPath);
         } else {
             showToast(data.message || '删除失败', 'error');
         }
@@ -341,6 +395,10 @@ async function deleteFile(filename) {
 // 排序文件
 function sortFiles() {
     files.sort((a, b) => {
+        // 目录始终排在前面
+        if (a.isDir && !b.isDir) return -1;
+        if (!a.isDir && b.isDir) return 1;
+        
         let compareA, compareB;
         
         switch (sortField) {

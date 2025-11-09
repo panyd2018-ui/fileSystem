@@ -67,7 +67,7 @@ chmod +x build.sh
 ├── middleware.go        # 中间件
 ├── utils.go             # 工具函数
 ├── go.mod              # Go 模块文件
-├── static/             # 静态文件目录
+├── static/             # 静态文件目录（编译时嵌入到 exe）
 │   ├── index.html     # 前端页面
 │   ├── style.css      # 样式文件
 │   └── script.js      # JavaScript 文件
