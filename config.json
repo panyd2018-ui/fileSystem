@@ -1,5 +1,6 @@
 {
-  "storage_dir": "C:\\Users\\Administrator\\Downloads",
-  "port": ":8080"
+  "storage_dir": "C:\\Users\\panyd\\Downloads",
+  "port": ":8080",
+  "root_path": "/file"
 }
 

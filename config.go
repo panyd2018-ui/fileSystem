@@ -11,6 +11,7 @@ import (
 type Config struct {
 	StorageDir string `json:"storage_dir"`
 	Port       string `json:"port"`
+	RootPath   string `json:"root_path"`
 }
 
 var (
@@ -51,6 +52,7 @@ func loadConfig() {
 		defaultConfig := Config{
 			StorageDir: getDefaultDownloadDir(),
 			Port:       ":8080",
+			RootPath:   "/",
 		}
 
 		data, err := json.MarshalIndent(defaultConfig, "", "  ")
@@ -89,6 +91,11 @@ func loadConfig() {
 		config.Port = ":8080"
 	}
 
+	// 如果配置文件中根路由为空，使用默认根路由
+	if config.RootPath == "" {
+		config.RootPath = "/"
+	}
+
 	uploadDir = config.StorageDir
 	port = config.Port
 
@@ -100,6 +107,7 @@ func loadConfig() {
 	absPath, _ := filepath.Abs(uploadDir)
 	log.Printf("存储目录已设置为: %s", absPath)
 	log.Printf("服务器端口: %s", port)
+	log.Printf("根路由已设置为: %s", config.RootPath)
 }
 
 // 保存配置文件

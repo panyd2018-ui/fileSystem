@@ -1,4 +1,6 @@
-const API_BASE = '/api';
+// 从全局配置获取根路径，如果没有则默认为 "/"
+const ROOT_PATH = (typeof window !== 'undefined' && window.ROOT_PATH) || '/';
+const API_BASE = ROOT_PATH === '/' ? '/api' : ROOT_PATH + '/api';
 let files = [];
 let sortField = 'name'; // 当前排序字段: name, size, time
 let sortOrder = 'asc';  // 排序方向: asc, desc
