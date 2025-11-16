@@ -134,6 +134,24 @@ header h1 {
     border-radius: 3px;
 }
 
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+    font-size: 11px;
+    color: #666;
+}
+
+.progress-size {
+    color: #666;
+}
+
+.progress-speed {
+    color: #3498db;
+    font-weight: 500;
+}
+
 .upload-progress-item.success .progress-bar-fill {
     background: #27ae60;
 }
@@ -417,6 +435,56 @@ header h1 {
 
 .toast.error {
     background: #e74c3c;
+}
+
+.toast.download-progress {
+    min-width: 300px;
+    max-width: 400px;
+    padding: 12px 16px;
+}
+
+.download-info {
+    width: 100%;
+}
+
+.download-filename {
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.download-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 11px;
+}
+
+.download-size {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.download-speed {
+    color: #3498db;
+    font-weight: 500;
+}
+
+.download-bar {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.download-bar-fill {
+    height: 100%;
+    background: #3498db;
+    transition: width 0.3s ease;
+    border-radius: 2px;
 }
 
 @media (max-width: 768px) {

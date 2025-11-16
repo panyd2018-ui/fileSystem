@@ -111,18 +111,41 @@ function uploadFile(file) {
         <div class="progress-bar">
             <div class="progress-bar-fill" style="width: 0%"></div>
         </div>
+        <div class="progress-info">
+            <span class="progress-size">0 / ${formatFileSize(file.size)}</span>
+            <span class="progress-speed">计算中...</span>
+        </div>
     `;
     progressContainer.appendChild(progressItem);
 
     const xhr = new XMLHttpRequest();
     const progressBar = progressItem.querySelector('.progress-bar-fill');
     const progressPercent = progressItem.querySelector('.progress-percent');
+    const progressSize = progressItem.querySelector('.progress-size');
+    const progressSpeed = progressItem.querySelector('.progress-speed');
+    
+    // 速度计算相关变量
+    let lastLoaded = 0;
+    let lastTime = Date.now();
 
     xhr.upload.addEventListener('progress', (e) => {
         if (e.lengthComputable) {
             const percent = Math.round((e.loaded / e.total) * 100);
             progressBar.style.width = percent + '%';
             progressPercent.textContent = percent + '%';
+            progressSize.textContent = `${formatFileSize(e.loaded)} / ${formatFileSize(e.total)}`;
+            
+            // 计算速度
+            const now = Date.now();
+            const timeDelta = (now - lastTime) / 1000; // 秒
+            if (timeDelta > 0.1) { // 至少间隔100ms
+                const bytesDelta = e.loaded - lastLoaded;
+                const speed = bytesDelta / timeDelta; // 字节/秒
+                progressSpeed.textContent = formatSpeed(speed);
+                
+                lastLoaded = e.loaded;
+                lastTime = now;
+            }
         }
     });
 
@@ -133,12 +156,20 @@ function uploadFile(file) {
                 if (data.success) {
                     progressItem.classList.add('success');
                     progressPercent.textContent = '完成';
+                    
+                    // 显示后端返回的速度信息
+                    if (data.speed && data.speed.speedText) {
+                        progressSpeed.textContent = `平均速度: ${data.speed.speedText}`;
+                        progressSpeed.style.color = '#27ae60';
+                        progressSpeed.style.fontWeight = '600';
+                    }
+                    
                     setTimeout(() => {
                         progressItem.remove();
                         if (progressContainer.children.length === 0) {
                             progressContainer.style.display = 'none';
                         }
-                    }, 1000);
+                    }, 3000); // 延长显示时间以便查看速度信息
                     // 延迟刷新文件列表，避免多个文件同时上传时频繁刷新
                     setTimeout(() => {
                         loadFiles(currentPath);
@@ -146,16 +177,19 @@ function uploadFile(file) {
                 } else {
                     progressItem.classList.add('error');
                     progressPercent.textContent = '失败';
+                    progressSpeed.textContent = '上传失败';
                     showToast(data.message || '上传失败', 'error');
                 }
             } catch (e) {
                 progressItem.classList.add('error');
                 progressPercent.textContent = '失败';
+                progressSpeed.textContent = '上传失败';
                 showToast('上传失败', 'error');
             }
         } else {
             progressItem.classList.add('error');
             progressPercent.textContent = '失败';
+            progressSpeed.textContent = '上传失败';
             showToast('上传失败: HTTP ' + xhr.status, 'error');
         }
     });
@@ -163,6 +197,7 @@ function uploadFile(file) {
     xhr.addEventListener('error', () => {
         progressItem.classList.add('error');
         progressPercent.textContent = '失败';
+        progressSpeed.textContent = '网络错误';
         showToast('上传失败: 网络错误', 'error');
     });
 
@@ -343,6 +378,19 @@ function formatFileSize(bytes) {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 }
 
+// 格式化速度
+function formatSpeed(bytesPerSec) {
+    if (bytesPerSec < 1024) {
+        return bytesPerSec.toFixed(0) + ' B/s';
+    } else if (bytesPerSec < 1024 * 1024) {
+        return (bytesPerSec / 1024).toFixed(2) + ' KB/s';
+    } else if (bytesPerSec < 1024 * 1024 * 1024) {
+        return (bytesPerSec / (1024 * 1024)).toFixed(2) + ' MB/s';
+    } else {
+        return (bytesPerSec / (1024 * 1024 * 1024)).toFixed(2) + ' GB/s';
+    }
+}
+
 // 格式化日期
 function formatDate(dateString) {
     const date = new Date(dateString);
@@ -363,8 +411,117 @@ function formatDate(dateString) {
 
 // 下载文件
 function downloadFile(path) {
-    window.open(`${API_BASE}/download/${encodeURIComponent(path)}`, '_blank');
-    showToast('开始下载...', 'success');
+    const pathParts = path.split(/[/\\]/);
+    const filename = pathParts[pathParts.length - 1];
+    
+    // 创建下载进度提示
+    showToast(`开始下载 ${filename}...`, 'info');
+    
+    // 使用 fetch 下载以便跟踪进度
+    fetch(`${API_BASE}/download/${encodeURIComponent(path)}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('下载失败: HTTP ' + response.status);
+            }
+            
+            const contentLength = response.headers.get('content-length');
+            const total = contentLength ? parseInt(contentLength, 10) : 0;
+            
+            if (!response.body) {
+                throw new Error('无法读取响应流');
+            }
+            
+            const reader = response.body.getReader();
+            const chunks = [];
+            let loaded = 0;
+            let lastLoaded = 0;
+            let lastTime = Date.now();
+            
+            // 创建下载进度提示
+            const downloadToast = document.createElement('div');
+            downloadToast.className = 'toast download-progress';
+            downloadToast.innerHTML = `
+                <div class="download-info">
+                    <div class="download-filename">${filename}</div>
+                    <div class="download-stats">
+                        <span class="download-size">0 B</span>
+                        <span class="download-speed">计算中...</span>
+                    </div>
+                    <div class="download-bar">
+                        <div class="download-bar-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(downloadToast);
+            downloadToast.classList.add('show');
+            
+            const downloadBarFill = downloadToast.querySelector('.download-bar-fill');
+            const downloadSize = downloadToast.querySelector('.download-size');
+            const downloadSpeed = downloadToast.querySelector('.download-speed');
+            
+            function updateSpeed() {
+                const now = Date.now();
+                const timeDelta = (now - lastTime) / 1000;
+                if (timeDelta > 0.1) {
+                    const bytesDelta = loaded - lastLoaded;
+                    const speed = bytesDelta / timeDelta;
+                    downloadSpeed.textContent = formatSpeed(speed);
+                    lastLoaded = loaded;
+                    lastTime = now;
+                }
+            }
+            
+            const speedInterval = setInterval(updateSpeed, 500);
+            
+            function pump() {
+                return reader.read().then(({ done, value }) => {
+                    if (done) {
+                        clearInterval(speedInterval);
+                        // 合并所有块
+                        const blob = new Blob(chunks);
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                        
+                        // 更新完成状态
+                        downloadBarFill.style.width = '100%';
+                        downloadSize.textContent = formatFileSize(loaded);
+                        downloadSpeed.textContent = '下载完成';
+                        downloadSpeed.style.color = '#27ae60';
+                        downloadSpeed.style.fontWeight = '600';
+                        
+                        setTimeout(() => {
+                            downloadToast.classList.remove('show');
+                            setTimeout(() => downloadToast.remove(), 300);
+                        }, 2000);
+                        
+                        showToast(`${filename} 下载完成`, 'success');
+                        return;
+                    }
+                    
+                    chunks.push(value);
+                    loaded += value.length;
+                    
+                    if (total > 0) {
+                        const percent = Math.round((loaded / total) * 100);
+                        downloadBarFill.style.width = percent + '%';
+                    }
+                    downloadSize.textContent = formatFileSize(loaded);
+                    
+                    return pump();
+                });
+            }
+            
+            return pump();
+        })
+        .catch(error => {
+            showToast('下载失败: ' + error.message, 'error');
+        });
 }
 
 // 删除文件

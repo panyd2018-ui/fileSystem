@@ -8,6 +8,10 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"filesystem/internal/config"
+	"filesystem/internal/handlers"
+	"filesystem/internal/middleware"
+
 	"github.com/gorilla/mux"
 )
 
@@ -15,18 +19,19 @@ import (
 var staticFiles embed.FS
 
 func init() {
-	loadConfig()
+	config.LoadConfig()
+	handlers.InitHandlers(staticFiles)
 }
 
 func main() {
 	r := setupRoutes()
 
-	absPath, _ := filepath.Abs(uploadDir)
-	fmt.Printf("文件系统服务器启动在 http://localhost%s\n", port)
+	absPath, _ := filepath.Abs(config.UploadDir)
+	fmt.Printf("文件系统服务器启动在 http://localhost%s\n", config.Port)
 	fmt.Printf("存储目录: %s\n", absPath)
 	fmt.Printf("提示: 可通过 config.json 配置文件修改存储目录、端口和根路由\n")
 
-	log.Fatal(http.ListenAndServe(port, corsMiddleware(r)))
+	log.Fatal(http.ListenAndServe(config.Port, middleware.CORSMiddleware(r)))
 }
 
 // 规范化根路径
@@ -50,7 +55,7 @@ func setupRoutes() *mux.Router {
 	r := mux.NewRouter()
 
 	// 规范化根路径
-	rootPath := normalizeRootPath(config.RootPath)
+	rootPath := normalizeRootPath(config.Cfg.RootPath)
 
 	// 静态文件服务（从嵌入的文件系统读取）
 	// 使用 fs.Sub 获取 static 子目录
@@ -74,13 +79,13 @@ func setupRoutes() *mux.Router {
 	} else {
 		api = r.PathPrefix(rootPath + "/api").Subrouter()
 	}
-	api.HandleFunc("/files", listFiles).Methods("GET")
-	api.HandleFunc("/upload", uploadFile).Methods("POST")
-	api.HandleFunc("/download/{filename}", downloadFile).Methods("GET")
-	api.HandleFunc("/delete/{filename}", deleteFile).Methods("DELETE")
+	api.HandleFunc("/files", handlers.ListFiles).Methods("GET")
+	api.HandleFunc("/upload", handlers.UploadFile).Methods("POST")
+	api.HandleFunc("/download/{filename}", handlers.DownloadFile).Methods("GET")
+	api.HandleFunc("/delete/{filename}", handlers.DeleteFile).Methods("DELETE")
 
 	// 前端页面 - 使用配置的根路由
-	r.HandleFunc(rootPath, serveIndex).Methods("GET")
+	r.HandleFunc(rootPath, handlers.ServeIndex).Methods("GET")
 
 	return r
 }
