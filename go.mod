@@ -1,4 +1,4 @@
-module filesystem
+module fileSystem
 
 go 1.21
 

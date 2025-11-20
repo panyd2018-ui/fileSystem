@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"filesystem/internal/config"
-	"filesystem/internal/models"
-	"filesystem/internal/utils"
+	"fileSystem/internal/config"
+	"fileSystem/internal/models"
+	"fileSystem/internal/utils"
 
 	"github.com/gorilla/mux"
 )

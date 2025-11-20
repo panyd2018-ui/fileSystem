@@ -25,5 +25,3 @@ type SpeedInfo struct {
 	Duration     string  `json:"duration"`     // 耗时
 	SpeedText    string  `json:"speedText"`    // 格式化的速度文本
 }
-
-//

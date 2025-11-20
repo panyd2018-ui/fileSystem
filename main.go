@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"filesystem/internal/config"
-	"filesystem/internal/handlers"
-	"filesystem/internal/middleware"
+	"fileSystem/internal/config"
+	"fileSystem/internal/handlers"
+	"fileSystem/internal/middleware"
 
 	"github.com/gorilla/mux"
 )
