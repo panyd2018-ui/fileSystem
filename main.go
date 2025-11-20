@@ -81,8 +81,8 @@ func setupRoutes() *mux.Router {
 	}
 	api.HandleFunc("/files", handlers.ListFiles).Methods("GET")
 	api.HandleFunc("/upload", handlers.UploadFile).Methods("POST")
-	api.HandleFunc("/download/{filename}", handlers.DownloadFile).Methods("GET")
-	api.HandleFunc("/delete/{filename}", handlers.DeleteFile).Methods("DELETE")
+	api.HandleFunc("/download/{filename:.*}", handlers.DownloadFile).Methods("GET")
+	api.HandleFunc("/delete/{filename:.*}", handlers.DeleteFile).Methods("DELETE")
 
 	// 前端页面 - 使用配置的根路由
 	r.HandleFunc(rootPath, handlers.ServeIndex).Methods("GET")
