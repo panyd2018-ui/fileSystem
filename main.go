@@ -65,11 +65,25 @@ func setupRoutes() *mux.Router {
 	}
 	staticFS := http.FS(staticSubFS)
 
+	// 创建静态文件处理器，添加日志
+	loggedStaticHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("[STATIC] 请求静态文件 - 路径: %s, 客户端IP: %s", r.URL.Path, r.RemoteAddr)
+
+		// 根据根路径选择正确的处理器
+		var handler http.Handler
+		if rootPath == "/" {
+			handler = http.StripPrefix("/static/", http.FileServer(staticFS))
+		} else {
+			handler = http.StripPrefix(rootPath+"/static/", http.FileServer(staticFS))
+		}
+		handler.ServeHTTP(w, r)
+	})
+
 	// 静态文件路由 - 使用根路径前缀
 	if rootPath == "/" {
-		r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(staticFS)))
+		r.PathPrefix("/static/").Handler(loggedStaticHandler)
 	} else {
-		r.PathPrefix(rootPath + "/static/").Handler(http.StripPrefix(rootPath+"/static/", http.FileServer(staticFS)))
+		r.PathPrefix(rootPath + "/static/").Handler(loggedStaticHandler)
 	}
 
 	// API 路由 - 使用根路径前缀

@@ -47,8 +47,48 @@ func ServeIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	defer indexFile.Close()
 
+	// 读取 HTML 内容
+	htmlContent, err := io.ReadAll(indexFile)
+	if err != nil {
+		log.Printf("[INDEX] 错误: 无法读取 index.html 内容 - %v", err)
+		http.Error(w, "无法读取前端页面", http.StatusInternalServerError)
+		return
+	}
+
+	// 根据根路径替换静态文件路径和注入配置
+	rootPath := config.Cfg.RootPath
+	if rootPath == "" {
+		rootPath = "/"
+	}
+	// 规范化根路径
+	if rootPath[0] != '/' {
+		rootPath = "/" + rootPath
+	}
+	if len(rootPath) > 1 && rootPath[len(rootPath)-1] == '/' {
+		rootPath = rootPath[:len(rootPath)-1]
+	}
+
+	// 在 <head> 标签后注入根路径配置
+	htmlStr := string(htmlContent)
+	if rootPath != "/" {
+		// 替换静态文件路径
+		htmlStr = strings.ReplaceAll(htmlStr, `href="/static/`, fmt.Sprintf(`href="%s/static/`, rootPath))
+		htmlStr = strings.ReplaceAll(htmlStr, `src="/static/`, fmt.Sprintf(`src="%s/static/`, rootPath))
+	}
+
+	// 注入 ROOT_PATH 变量到 JavaScript
+	scriptTag := fmt.Sprintf(`<script>window.ROOT_PATH = "%s";</script>`, rootPath)
+	if strings.Contains(htmlStr, "</head>") {
+		htmlStr = strings.Replace(htmlStr, "</head>", scriptTag+"</head>", 1)
+	} else {
+		// 如果没有 </head>，在 <body> 前插入
+		htmlStr = strings.Replace(htmlStr, "<body>", scriptTag+"<body>", 1)
+	}
+
+	htmlContent = []byte(htmlStr)
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	bytesWritten, err := io.Copy(w, indexFile)
+	bytesWritten, err := w.Write(htmlContent)
 	if err != nil {
 		log.Printf("[INDEX] 错误: 写入响应失败 - %v", err)
 		return

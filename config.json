@@ -1,6 +1,6 @@
 {
   "storage_dir": "D:\\",
   "port": ":8080",
-  "root_path": "/"
+  "root_path": "/file"
 }
 
